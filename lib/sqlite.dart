@@ -42,9 +42,10 @@ class sqliteDB {
     }
   }
 
-  static Future<List<Task>> getAllTasks() async {
+  static Future<List<Task>> getAllPendingTasks() async {
     var dbClient = await db;
-    List<Map<String, dynamic>> taskListFromDB = await dbClient.query("TASK");
+    List<Map<String, dynamic>> taskListFromDB =
+        await dbClient.query("TASK", where: "isFinished=0");
     List<Task> taskListAsObjects = [];
     for (var map in taskListFromDB) {
       taskListAsObjects.add(Task.fromMap(map));
@@ -52,5 +53,21 @@ class sqliteDB {
     return (taskListAsObjects);
     //var taskListMemory = taskListFromDB.map((t) => Task.fromMap(t)).toList();
     // return(taskListMemory);//
+  }
+
+  static Future<bool> updateTask(Task task) async {
+    var dbClient = await db;
+    int changes = await dbClient.update("TASK", task.toMap(),
+        where: "taskID=?",
+        whereArgs: [task.taskID]); //? replace with task.taskID
+    return (changes > 0);
+  }
+
+  static Future<bool> deleteTask(Task task) async {
+    var dbClient = await db;
+    int changes = await dbClient.delete("TASK",
+        where: "taskID=?",
+        whereArgs: [task.taskID]); //? replace with task.taskID
+    return (changes == 1);
   }
 }

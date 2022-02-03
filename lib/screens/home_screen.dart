@@ -12,7 +12,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  Future<List<Task>> taskList = sqliteDB.getAllTasks();
+  Future<List<Task>> taskList = sqliteDB.getAllPendingTasks();
   Widget futureBuilderProvider() {
     return (FutureBuilder<List<Task>>(
         future: taskList,
@@ -54,11 +54,17 @@ class _MyHomePageState extends State<MyHomePage> {
                 List<Widget> children = [];
                 for (var task in data) {
                   children.add(ActivityCard(
-                      task.taskName,
-                      task.deadlineDate == null
-                          ? ""
-                          : task.deadlineDate.toString(),
-                      task.taskListID.toString()));
+                    header: task.taskName,
+                    date: task.deadlineDate == null
+                        ? ""
+                        : task.deadlineDate.toString(),
+                    list: task.taskListID.toString(),
+                    onTap: () {
+                      Navigator.pushNamed(context, newTaskScreenID,
+                          arguments: task);
+                    },
+                    task: task,
+                  ));
                 }
                 return ListView(
                   padding: EdgeInsets.all(5),
@@ -89,51 +95,64 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class ActivityCard extends StatelessWidget {
-  const ActivityCard(
-    this.header,
-    this.date,
-    this.list, {
+  const ActivityCard({
+    required this.header,
+    required this.task,
+    required this.date,
+    required this.list,
+    required this.onTap,
     Key? key,
   }) : super(key: key);
   final String header;
   final String date;
   final String list;
+
+  final void Function() onTap;
+  final Task task;
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: Colors.yellow,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10.0),
-      ),
-      child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              margin: EdgeInsets.fromLTRB(0, 10.5, 0, 0),
-              child: Checkbox(
-                value: false,
-                onChanged: (bool? value) {},
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        color: Colors.yellow,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+        child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                  margin: EdgeInsets.fromLTRB(0, 10.5, 0, 0),
+                  child: Checkbox(
+                      value: false,
+                      onChanged: (value) async {
+                        if (value == true) {
+                          task.isFinished = true;
+                          await sqliteDB.updateTask(task);
+                          Navigator.pushNamedAndRemoveUntil(
+                              context, homescreen, (route) => false);
+                        }
+                      })),
+              Container(
+                margin: EdgeInsets.fromLTRB(0, 20, 0, 10),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Text(
+                        header,
+                        style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 25,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      Text(date),
+                      Text(list),
+                    ]),
               ),
-            ),
-            Container(
-              margin: EdgeInsets.fromLTRB(0, 20, 0, 10),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Text(
-                      header,
-                      style: TextStyle(
-                          color: Colors.red,
-                          fontSize: 25,
-                          fontWeight: FontWeight.bold),
-                    ),
-                    Text(date),
-                    Text(list),
-                  ]),
-            ),
-          ]),
+            ]),
+      ),
     );
   }
 }

@@ -7,8 +7,8 @@ import 'package:todolist/main.dart';
 import 'package:todolist/screens/routing.dart';
 
 class NewTaskScren extends StatefulWidget {
-  const NewTaskScren({Key? key}) : super(key: key);
-
+  const NewTaskScren({Key? key, this.task}) : super(key: key);
+  final Task? task;
   @override
   _NewTaskScrenState createState() => _NewTaskScrenState();
 }
@@ -42,6 +42,23 @@ class _NewTaskScrenState extends State<NewTaskScren> {
     return dropdownMenuitem;
   }
 
+  /*@override
+  initState() {
+    super.initState();
+
+  }*/
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    task = widget.task ?? task;
+    datecontroller.text = task.deadlineDate == null
+        ? ""
+        : DateFormat('EEEE, d MMM,yyyy').format(task.deadlineDate!);
+    timecontroller.text =
+        task.deadlineTime == null ? "" : task.deadlineTime!.format(context);
+    namecontroller.text = task.taskName;
+  }
+
   void saveNewTask() async {
     Map<String, dynamic> taskAsMap = task.toMap();
     taskAsMap.remove("taskID");
@@ -54,18 +71,45 @@ class _NewTaskScrenState extends State<NewTaskScren> {
     }
   }
 
+  void updateTask() async {
+    bool success = await sqliteDB.updateTask(task);
+    if (success) {
+      Navigator.pushNamedAndRemoveUntil(context, homescreen, (route) => false);
+    }
+  }
+
+  void deleteTask() async {
+    bool success = await sqliteDB.deleteTask(task);
+    if (success) {
+      Navigator.pushNamedAndRemoveUntil(context, homescreen, (route) => false);
+    }
+  }
+
   TextEditingController datecontroller = TextEditingController();
   TextEditingController timecontroller = TextEditingController();
+  TextEditingController namecontroller = TextEditingController();
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
           child: Icon(Icons.check, size: 35),
           onPressed: () {
-            saveNewTask();
+            if (widget.task == null) {
+              saveNewTask();
+            } else {
+              updateTask();
+            }
           }),
       appBar: AppBar(
-        title: Text("New Task"),
+        title: Text(widget.task == null ? "New Task" : "Edit Task"),
         backgroundColor: Colors.blue,
+        actions: widget.task != null
+            ? [
+                IconButton(
+                  icon: Icon(Icons.delete),
+                  onPressed: deleteTask,
+                )
+              ]
+            : [],
       ),
       body: Container(
         padding: EdgeInsets.all(10),
@@ -84,7 +128,10 @@ class _NewTaskScrenState extends State<NewTaskScren> {
               children: [
                 Flexible(
                     child: TextField(
-                  decoration: InputDecoration(hintText: "Enter your task"),
+                  decoration: InputDecoration(
+                    hintText: "Enter your task",
+                  ),
+                  controller: namecontroller,
                   onChanged: (String? value) {
                     task.taskName = value == null ? task.taskName : value;
                   },
