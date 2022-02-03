@@ -47,9 +47,8 @@ class _NewTaskScrenState extends State<NewTaskScren> {
     taskAsMap.remove("taskID");
     int? taskid = await sqliteDB.insertTask(taskAsMap);
     if (taskid == null) {
-      print("failed");
     } else {
-      print("sucess");
+      Navigator.pop(context);
       Navigator.pushNamedAndRemoveUntil(
           context, newTaskScreenID, (route) => false);
     }

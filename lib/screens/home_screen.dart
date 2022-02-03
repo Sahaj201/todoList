@@ -1,32 +1,76 @@
 import 'package:todolist/main.dart';
 import 'package:flutter/material.dart';
+import 'package:todolist/sqlite.dart';
+import '../task.dart';
 import 'routing.dart';
 
-class MyHomePage extends StatelessWidget {
+class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key}) : super(key: key);
+
+  @override
+  _MyHomePageState createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  Future<List<Task>> taskList = sqliteDB.getAllTasks();
+  Widget futureBuilderProvider() {
+    return (FutureBuilder<List<Task>>(
+        future: taskList,
+        builder: (BuildContext context, AsyncSnapshot snapshot) {
+          if (snapshot.hasData) {
+            Container(child: Text("I have Data"));
+          } else {
+            Container(child: Text("Some Error"));
+          }
+          return Container();
+        }));
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.add, size: 35),
-        onPressed: () {
-          /*Navigator.push(
+        floatingActionButton: FloatingActionButton(
+          child: Icon(Icons.add, size: 35),
+          onPressed: () {
+            /*Navigator.push(
             context,
             MaterialPageRoute(builder: (context) {
               return const NewTaskScren();
             }),
           );*/
-          Navigator.pushNamed(context, newTaskScreenID); //Named Routes
-        },
-      ),
-      backgroundColor: Colors.blueGrey,
-      appBar: AppBar(
-        title: Text("Todo"),
-        backgroundColor: Colors.blue,
-      ),
-      body: Container(
-        child: ListView(padding: EdgeInsets.all(5), children: [
+            Navigator.pushNamed(context, newTaskScreenID); //Named Routes
+          },
+        ),
+        backgroundColor: Colors.blueGrey,
+        appBar: AppBar(
+          title: Text("Todo"),
+          backgroundColor: Colors.blue,
+        ),
+        body: FutureBuilder<List<Task>>(
+            future: taskList,
+            builder: (BuildContext context, AsyncSnapshot snapshot) {
+              if (snapshot.hasData) {
+                var data = snapshot.data;
+                List<Widget> children = [];
+                for (var task in data) {
+                  children.add(ActivityCard(
+                      task.taskName,
+                      task.deadlineDate == null
+                          ? ""
+                          : task.deadlineDate.toString(),
+                      task.taskListID.toString()));
+                }
+                return ListView(
+                  padding: EdgeInsets.all(5),
+                  children: children,
+                );
+              } else if (snapshot.hasError) {
+                return (Text("Some Error"));
+              } else {
+                return Center(child: CircularProgressIndicator());
+              }
+            })
+        /*ListView(padding: EdgeInsets.all(5), children: [
           ActivityCard("Pay bil", "4th July", "Pay bills"),
           ActivityCard("Pay fee", "5th July", "Pay bills"),
           ActivityCard("Pay rent", "6th July", "Pay bills"),
@@ -39,9 +83,8 @@ class MyHomePage extends StatelessWidget {
           ActivityCard("Pay bil", "4th July", "Pay bills"),
           ActivityCard("Pay fee", "5th July", "Pay bills"),
           ActivityCard("Pay rent", "6th July", "Pay bills"),
-        ]),
-      ),
-    );
+        ]),*/
+        );
   }
 }
 

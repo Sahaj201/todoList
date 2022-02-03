@@ -42,12 +42,14 @@ class sqliteDB {
     }
   }
 
-  static Future<List<Task>?> getAllTasks() async {
+  static Future<List<Task>> getAllTasks() async {
     var dbClient = await db;
     List<Map<String, dynamic>> taskListFromDB = await dbClient.query("TASK");
+    List<Task> taskListAsObjects = [];
     for (var map in taskListFromDB) {
-      print(map);
+      taskListAsObjects.add(Task.fromMap(map));
     }
+    return (taskListAsObjects);
     //var taskListMemory = taskListFromDB.map((t) => Task.fromMap(t)).toList();
     // return(taskListMemory);//
   }
