@@ -1,6 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:todolist/task.dart';
+import 'package:todolist/sqlite.dart';
+import 'package:todolist/main.dart';
+import 'package:todolist/screens/routing.dart';
 
 class NewTaskScren extends StatefulWidget {
   const NewTaskScren({Key? key}) : super(key: key);
@@ -10,16 +14,24 @@ class NewTaskScren extends StatefulWidget {
 }
 
 class _NewTaskScrenState extends State<NewTaskScren> {
-  @override
-  DateTime? date = null;
-  TimeOfDay? time = null;
+  Task task = Task(
+      isFinished: false,
+      isRepeating: false,
+      taskName: "",
+      taskListID: 0,
+      taskID: -1,
+      parentTaskID: null,
+      deadlineDate: null,
+      deadlineTime: null);
   String? repeatitionFrequency = "No repeat";
   List<String> options = [
     "No repeat",
     "Once a Day",
     "Once a Day(Mon-Fri)",
     "Once a Week",
-    "Others"
+    "Once a Month",
+    "Once a Year"
+        "Others"
   ];
   List<DropdownMenuItem<String>> dropDownItemcreator(List<String> itemvalues) {
     List<DropdownMenuItem<String>> dropdownMenuitem = [];
@@ -30,10 +42,28 @@ class _NewTaskScrenState extends State<NewTaskScren> {
     return dropdownMenuitem;
   }
 
+  void saveNewTask() async {
+    Map<String, dynamic> taskAsMap = task.toMap();
+    taskAsMap.remove("taskID");
+    int? taskid = await sqliteDB.insertTask(taskAsMap);
+    if (taskid == null) {
+      print("failed");
+    } else {
+      print("sucess");
+      Navigator.pushNamedAndRemoveUntil(
+          context, newTaskScreenID, (route) => false);
+    }
+  }
+
   TextEditingController datecontroller = TextEditingController();
   TextEditingController timecontroller = TextEditingController();
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+          child: Icon(Icons.check, size: 35),
+          onPressed: () {
+            saveNewTask();
+          }),
       appBar: AppBar(
         title: Text("New Task"),
         backgroundColor: Colors.blue,
@@ -56,6 +86,9 @@ class _NewTaskScrenState extends State<NewTaskScren> {
                 Flexible(
                     child: TextField(
                   decoration: InputDecoration(hintText: "Enter your task"),
+                  onChanged: (String? value) {
+                    task.taskName = value == null ? task.taskName : value;
+                  },
                 )),
                 CustomIconButton(iconData: Icons.mic, onPressed: () {})
               ],
@@ -84,24 +117,26 @@ class _NewTaskScrenState extends State<NewTaskScren> {
                   onPressed: () async {
                     DateTime? pickedDate = await showDatePicker(
                         context: context,
-                        initialDate: date == null ? DateTime.now() : date!,
+                        initialDate: task.deadlineDate == null
+                            ? DateTime.now()
+                            : task.deadlineDate!,
                         firstDate: DateTime.now(),
                         lastDate: DateTime(21021));
                     if (pickedDate != null) {
-                      date = pickedDate;
+                      task.deadlineDate = pickedDate;
                       setState(() {});
-                      var dateString =
-                          DateFormat('EEEE, d MMM,yyyy').format(date!);
+                      var dateString = DateFormat('EEEE, d MMM,yyyy')
+                          .format(task.deadlineDate!);
                       datecontroller.text = dateString;
                     }
                   },
                 ),
                 Visibility(
-                  visible: date == null ? false : true,
+                  visible: task.deadlineDate == null ? false : true,
                   child: CustomIconButton(
                     iconData: Icons.cancel_rounded,
                     onPressed: () {
-                      date = null;
+                      task.deadlineDate = null;
                       setState(() {});
                       datecontroller.text = "";
                     },
@@ -111,7 +146,7 @@ class _NewTaskScrenState extends State<NewTaskScren> {
             ),
             //Time Input
             Visibility(
-              visible: date == null ? false : true,
+              visible: task.deadlineDate == null ? false : true,
               child: Row(
                 children: [
                   Flexible(
@@ -126,7 +161,7 @@ class _NewTaskScrenState extends State<NewTaskScren> {
                       TimeOfDay? pickedTime = await showTimePicker(
                           context: context, initialTime: TimeOfDay.now());
                       if (pickedTime != null) {
-                        time = pickedTime;
+                        task.deadlineTime = pickedTime;
                         setState(() {});
                         DateTime parsedTime = DateFormat.jm()
                             .parse(pickedTime.format(context).toString());
@@ -138,11 +173,11 @@ class _NewTaskScrenState extends State<NewTaskScren> {
                     },
                   ),
                   Visibility(
-                    visible: time == null ? false : true,
+                    visible: task.deadlineTime == null ? false : true,
                     child: CustomIconButton(
                       iconData: Icons.cancel_rounded,
                       onPressed: () {
-                        time = null;
+                        task.deadlineTime = null;
                         setState(() {});
                         timecontroller.text = "";
                       },
